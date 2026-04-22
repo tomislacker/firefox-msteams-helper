@@ -24,11 +24,9 @@ jobs:
 
       - name: Lint JavaScript
         run: npx eslint content.js --max-warnings=0
-        continue-on-error: true
 
       - name: Check formatting
         run: npx prettier --check .
-        continue-on-error: true
 
       - name: Detect secrets with TruffleHog
         uses: trufflesecurity/trufflehog@main
@@ -37,7 +35,6 @@ jobs:
           base: ${{ github.event.repository.default_branch }}
           head: HEAD
           extra_args: --debug
-        continue-on-error: true
 
       - name: Validate manifest
         run: |
