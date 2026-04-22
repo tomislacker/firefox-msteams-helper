@@ -1,49 +1,43 @@
-## Raise/Lower Hand
+# firefox-msteams-helper
 
-```html
-<button id=raisehands-button">
-```
+This is a simple [Firefox] addon.
 
-```html
-<button aria-label="Lower your hand"></button>
-```
+## Usage
 
-```html
-<button aria-label="Raise your hand"></button>
-```
+### Installation
 
-## Emojis
+:warning: _TODO_
 
-### Thumbs Up/Like
+### Functionality
 
-```html
-<img
-  class="fui-Image ___1rgb55j fj3…n0nqpm fnjtsih f1cnaozt"
-  alt="Like"
-  itemid="yesV2-3D"
-/>
-```
+All hotkeys/keybinds use the Shift+Alt modifier. Followed by:
 
-### Heart
+- `!` (1) - Toggle raised hand status
+- `@` (2) - Heart/love reaction
+- `#` (3) - Applause reaction
+- `$` (4) - Laugh reaction
+- `%` (5) - Surprised reaction
 
-```html
-<img class="fui-Image ___1rgb55j fj3…n0nqpm fnjtsih f1cnaozt" alt="Love" draggable="false" itemid="heartV2-3D"
-```
+## Roadmap
 
-### Applause
+- Some sort of configuration store.
+  - Customized modifier.
+  - Customized key mapping.
+  - Key mapping collision detection.
 
-```html
-<img class="fui-Image ___1rgb55j fj3…n0nqpm fnjtsih f1cnaozt" alt="Applause" draggable="false" itemid="clapV2-3D"
-```
+    ie. If there's another keydown listener that conflicts in some way.
+    Though this is likely very non-trivial to detect...
 
-### Laughing
+- Remove artificial delay (`setTimeout`) when detecting if a button exists.
 
-```html
-<img class="fui-Image ___1rgb55j fj3…n0nqpm fnjtsih f1cnaozt" alt="Laugh" draggable="false" itemid="laughV2-3D"
-```
+  This was introduced to ensure that if a described button doesn't exist, it
+  is likely because we are trying to click a reaction but the reactions
+  toobar is not visible. So we click the reactions menu button, wait 500ms
+  in a deadreckoning fashion to hope that the toolbar is available after
+  that, followed by trying to find & click the reaction button element.
 
-### Surprised
+- Addon signing.
+- Addon packaging.
+- Addon publishing.
 
-```html
-<img class="fui-Image ___1rgb55j fj3…n0nqpm fnjtsih f1cnaozt" alt="Surprised" draggable="false" itemid="surprisedV2-3D"
-```
+[Firefox]: https://www.firefox.com "Find your way back to a better internet"
