@@ -1,0 +1,22 @@
+{
+  "name": "teams-hotkey-helper",
+  "version": "0.0.2",
+  "description": "Keyboard shortcuts for Microsoft Teams reactions and hand raise",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tomislacker/firefox-msteams-helper.git"
+  },
+  "scripts": {
+    "lint": "eslint content.js",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "validate": "npm run lint && npm run format:check"
+  },
+  "devDependencies": {
+    "eslint": "^8.56.0",
+    "prettier": "^3.1.1",
+    "web-ext": "^7.8.0",
+    "chrome-webstore-upload-cli": "^2.1.1"
+  }
+}

@@ -1,0 +1,214 @@
+name: Build & Publish
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-check:
+    name: Lint & Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "18"
+
+      - name: Install dependencies
+        run: npm install --save-dev eslint prettier
+
+      - name: Lint JavaScript
+        run: npx eslint content.js --max-warnings=0
+
+      - name: Check formatting
+        run: npx prettier --check .
+
+      - name: Detect secrets with TruffleHog
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --debug
+
+      - name: Validate manifest
+        run: |
+          python3 -m json.tool manifest.json > /dev/null && echo "✓ manifest.json is valid JSON"
+          jq -C < manifest.json
+
+  build-artifacts:
+    name: Build Artifacts
+    runs-on: ubuntu-latest
+    needs: lint-and-check
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Extract version
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION="${{ github.ref_name }}"
+            VERSION="${VERSION#v}"
+          else
+            VERSION=$(jq -r '.version' manifest.json)
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create Firefox artifact
+        run: |
+          mkdir -p build/firefox
+          cp -r content.js manifest.json icons LICENSE README.md PRIVACY_POLICY.md build/firefox/
+          cd build/firefox
+          zip -r ../teams-hotkey-helper-firefox-${{ steps.version.outputs.version }}.zip .
+          cd ../..
+
+      - name: Create Chrome artifact
+        run: |
+          mkdir -p build/chrome
+          cp -r content.js manifest.json icons LICENSE README.md PRIVACY_POLICY.md build/chrome/
+          cd build/chrome
+          zip -r ../teams-hotkey-helper-chrome-${{ steps.version.outputs.version }}.zip .
+          cd ../..
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: extension-artifacts
+          path: build/*.zip
+          retention-days: 30
+
+  publish-firefox:
+    name: Publish to Firefox Add-ons
+    runs-on: ubuntu-latest
+    needs: build-artifacts
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "18"
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update manifest version
+        run: |
+          jq '.version = "${{ steps.version.outputs.version }}"' manifest.json > manifest.json.tmp
+          mv manifest.json.tmp manifest.json
+
+      - name: Install web-ext
+        run: npm install --save-dev web-ext
+
+      - name: Build Firefox extension
+        run: |
+          mkdir -p build/firefox
+          cp -r content.js manifest.json icons LICENSE README.md PRIVACY_POLICY.md build/firefox/
+
+      - name: Publish to Firefox Add-ons
+        run: |
+          npx web-ext sign \
+            --api-key="${{ secrets.FIREFOX_API_KEY }}" \
+            --api-secret="${{ secrets.FIREFOX_API_SECRET }}" \
+            --source-dir=build/firefox \
+            --artifacts-dir=build/
+        env:
+          WEB_EXT_API_KEY: ${{ secrets.FIREFOX_API_KEY }}
+          WEB_EXT_API_SECRET: ${{ secrets.FIREFOX_API_SECRET }}
+
+      - name: Upload signed Firefox extension
+        uses: actions/upload-artifact@v7
+        with:
+          name: firefox-signed
+          path: build/*.xpi
+
+  publish-chrome:
+    name: Publish to Chrome Web Store
+    runs-on: ubuntu-latest
+    needs: build-artifacts
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "18"
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update manifest version
+        run: |
+          jq '.version = "${{ steps.version.outputs.version }}"' manifest.json > manifest.json.tmp
+          mv manifest.json.tmp manifest.json
+
+      - name: Build Chrome extension
+        run: |
+          mkdir -p build/chrome
+          cp -r content.js manifest.json icons LICENSE README.md PRIVACY_POLICY.md build/chrome/
+          cd build/chrome
+          zip -r ../teams-hotkey-helper-chrome-${{ steps.version.outputs.version }}.zip .
+
+      - name: Install chrome-webstore-upload
+        run: npm install --save-dev chrome-webstore-upload-cli
+
+      - name: Publish to Chrome Web Store
+        run: |
+          npx chrome-webstore-upload upload \
+            --source build/teams-hotkey-helper-chrome-${{ steps.version.outputs.version }}.zip \
+            --extension-id="${{ secrets.CHROME_EXTENSION_ID }}" \
+            --client-id="${{ secrets.CHROME_CLIENT_ID }}" \
+            --client-secret="${{ secrets.CHROME_CLIENT_SECRET }}" \
+            --refresh-token="${{ secrets.CHROME_REFRESH_TOKEN }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chrome-extension
+          path: build/teams-hotkey-helper-chrome-*.zip
+
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [publish-firefox, publish-chrome]
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            artifacts/firefox-signed/*.xpi
+            artifacts/chrome-extension/*.zip
+          body: |
+            ## Installation
+
+            - **Firefox**: The signed extension is available on [Mozilla Add-ons](https://addons.mozilla.org/firefox/addon/teams-hotkey-helper/)
+            - **Chrome**: The extension is available on [Chrome Web Store](https://chromewebstore.google.com/detail/teams-hotkey-helper)
+
+            ### Changes in this release
+            See the [commit history](https://github.com/${{ github.repository }}/commits/${{ github.ref_name }}) for details.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
