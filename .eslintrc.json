@@ -9,9 +9,9 @@
     "ecmaVersion": "latest"
   },
   "rules": {
-    "no-console": "warn",
-    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+    "curly": ["error", "all"],
     "eqeqeq": ["error", "always"],
-    "curly": ["error", "all"]
+    "no-console": "off",
+    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }]
   }
 }
