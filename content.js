@@ -13,7 +13,7 @@ async function clickButton(buttonId) {
   }
   if (!myElement) {
     console.error(
-      `Failed to find element "${fullButtonId}", cannot clickButton(${buttonId})`,
+      `Failed to find element "${fullButtonId}", cannot clickButton(${buttonId})`
     );
     return false;
   }
@@ -90,5 +90,5 @@ window.addEventListener(
       }
     }
   },
-  false,
+  false
 );

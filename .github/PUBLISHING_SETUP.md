@@ -5,6 +5,7 @@ This document explains how to configure GitHub Actions secrets for publishing to
 ## Overview
 
 The GitHub Actions workflow automatically:
+
 - **Lints & tests** on all pull requests and pushes to `main`
 - **Builds artifacts** for both Firefox and Chrome
 - **Publishes to registries** when you create a new git tag (e.g., `v0.1.0`)
@@ -16,7 +17,9 @@ Set these secrets in your GitHub repository settings under **Settings → Secret
 ### Firefox Add-ons Secrets
 
 #### 1. `FIREFOX_API_KEY`
+
 Get this from [addons.mozilla.org](https://addons.mozilla.org):
+
 1. Sign in to your developer account
 2. Go to **Settings → API Keys**
 3. Create a new key with permissions for:
@@ -25,7 +28,9 @@ Get this from [addons.mozilla.org](https://addons.mozilla.org):
 4. Copy the "Issuer" value
 
 #### 2. `FIREFOX_API_SECRET`
+
 From the same **API Keys** page:
+
 1. Copy the "Secret" value
 
 ### Chrome Web Store Secrets
@@ -108,6 +113,7 @@ git push origin v0.1.0
 ```
 
 The workflow will:
+
 1. Update `manifest.json` with the version from the tag
 2. Build signed artifacts for Firefox
 3. Build and upload to Chrome Web Store
@@ -115,11 +121,11 @@ The workflow will:
 
 ## Workflow Triggers
 
-| Trigger | Action |
-|---------|--------|
-| Push to `main` | Builds development artifacts (linting + packaging) |
-| Pull request | Linting, secrets detection, validation |
-| Push tag `v*` | Publishes to both registries + creates GitHub release |
+| Trigger        | Action                                                |
+| -------------- | ----------------------------------------------------- |
+| Push to `main` | Builds development artifacts (linting + packaging)    |
+| Pull request   | Linting, secrets detection, validation                |
+| Push tag `v*`  | Publishes to both registries + creates GitHub release |
 
 ## Troubleshooting
 
